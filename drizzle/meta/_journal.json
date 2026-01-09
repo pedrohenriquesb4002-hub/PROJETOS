@@ -8,6 +8,13 @@
       "when": 1767996278450,
       "tag": "0000_tan_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767998901074,
+      "tag": "0001_rapid_puppet_master",
+      "breakpoints": true
     }
   ]
 }

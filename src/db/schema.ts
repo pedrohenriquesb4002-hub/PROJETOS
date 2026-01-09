@@ -55,7 +55,21 @@ export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   productId : uuid("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
+  igrejaId : uuid("igreja_id").notNull().references(() => igrejas.id),
   updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const auditLog = pgTable("audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: varchar("action", { length: 50 }).notNull(), // CREATE, UPDATE, DELETE, LOGIN, etc
+  entityType: varchar("entity_type", { length: 100 }).notNull(), // users, products, orders, etc
+  entityId: uuid("entity_id"), // ID do registro afetado (pode ser null para ações gerais)
+  oldData: text("old_data"), // JSON com dados anteriores (para UPDATE/DELETE)
+  newData: text("new_data"), // JSON com dados novos (para CREATE/UPDATE)
+  ipAddress: varchar("ip_address", { length: 45 }), // Endereço IP do usuário
+  userAgent: text("user_agent"), // User agent do navegador
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
