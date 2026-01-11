@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { requireAuth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
 
 /**
  * @swagger
@@ -173,6 +174,16 @@ export async function POST(request: NextRequest) {
         createdAt: users.createdAt,
       });
 
+    // Registrar criação no histórico
+    await createAuditLog({
+      userId: auth.user!.userId,
+      action: "CREATE",
+      entityType: "users",
+      entityId: newUser.id,
+      newData: newUser,
+      request,
+    });
+
     return NextResponse.json(
       {
         message: "Usuário criado com sucesso",
@@ -182,6 +193,73 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Listar todos os usuários
+ *     description: Retorna lista de todos os usuários (requer autenticação)
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de usuários
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 count:
+ *                   type: integer
+ *       401:
+ *         description: Não autorizado
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Verificar autenticação
+    const auth = requireAuth(request);
+
+    if (!auth.success) {
+      return NextResponse.json(
+        { error: "Não autorizado. Token JWT necessário." },
+        { status: 401 }
+      );
+    }
+
+    // Buscar todos os usuários (sem retornar a senha)
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        cpf: users.cpf,
+        phone: users.phone,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users);
+
+    return NextResponse.json(
+      {
+        users: allUsers,
+        count: allUsers.length,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Erro ao listar usuários:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
