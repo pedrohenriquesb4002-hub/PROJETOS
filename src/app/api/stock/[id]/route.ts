@@ -8,7 +8,7 @@ import { createAuditLog } from "@/lib/audit";
 // GET /api/stock/[id] - Obter estoque específico (PROTEGIDA)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -21,7 +21,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Buscar estoque com informações do produto
     const [stockItem] = await db
@@ -63,7 +63,7 @@ export async function GET(
 // PUT /api/stock/[id] - Atualizar estoque (PROTEGIDA)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -76,7 +76,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { quantity } = body;
 
@@ -160,7 +160,7 @@ export async function PUT(
 // DELETE /api/stock/[id] - Deletar registro de estoque (PROTEGIDA)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -173,7 +173,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Verificar se o estoque existe
     const [existingStock] = await db

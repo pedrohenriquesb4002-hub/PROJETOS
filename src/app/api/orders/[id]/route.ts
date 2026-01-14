@@ -8,7 +8,7 @@ import { createAuditLog } from "@/lib/audit";
 // GET /api/orders/[id] - Obter pedido específico (PROTEGIDA)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -21,8 +21,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
-
+    const { id } = await params;
     // Buscar pedido com informações do produto e igreja
     const [order] = await db
       .select({
@@ -76,7 +75,7 @@ export async function GET(
 // PUT /api/orders/[id] - Atualizar pedido (PROTEGIDA)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+ { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -89,7 +88,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { productId, quantity, igrejaId } = body;
 
@@ -218,7 +217,7 @@ export async function PUT(
 // DELETE /api/orders/[id] - Deletar pedido (PROTEGIDA)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -231,8 +230,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
-
+   const { id } = await params;
     // Verificar se o pedido existe
     const [existingOrder] = await db
       .select()
