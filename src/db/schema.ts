@@ -74,3 +74,4 @@ export const auditLog = pgTable("audit_log", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+//force deploy
