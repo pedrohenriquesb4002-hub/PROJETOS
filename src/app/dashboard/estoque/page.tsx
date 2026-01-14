@@ -32,7 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Warehouse, Package, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Plus, Search, Warehouse, Package, AlertTriangle, TrendingUp, Trash2 } from 'lucide-react'; // Trash2 adicionado
 import { apiRequest } from '@/lib/api';
 
 interface Product {
@@ -106,6 +106,20 @@ export default function EstoquePage() {
       fetchData();
     } catch (error: any) {
       alert(error.message || 'Erro ao adicionar ao estoque');
+    }
+  };
+
+  // Nova função para excluir item do estoque
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja remover este item do estoque?')) {
+      try {
+        await apiRequest(`/api/stock/${id}`, {
+          method: 'DELETE',
+        });
+        fetchData();
+      } catch (error: any) {
+        alert(error.message || 'Erro ao excluir item');
+      }
     }
   };
 
@@ -304,7 +318,8 @@ export default function EstoquePage() {
                     <TableHead>Quantidade</TableHead>
                     <TableHead>Valor Unitário</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Valor Total</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                    <TableHead className="w-[50px]"></TableHead> {/* Cabeçalho para a ação */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,10 +358,20 @@ export default function EstoquePage() {
                             {status.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           <p className="font-semibold text-gray-900">
                             {formatPrice(product.price * stock.quantity)}
                           </p>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            onClick={() => handleDelete(stock.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
