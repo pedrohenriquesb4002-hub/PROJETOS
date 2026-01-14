@@ -11,7 +11,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verificar autenticação
     const auth = requireAuth(request);
 
     if (!auth.success) {
@@ -22,7 +21,6 @@ export async function GET(
     }
 
     const { id } = await params;
-    // Buscar produto
     const [product] = await db
       .select()
       .from(products)
@@ -52,7 +50,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verificar autenticação
     const auth = requireAuth(request);
 
     if (!auth.success) {
@@ -66,7 +63,6 @@ export async function PUT(
     const body = await request.json();
     const { name, code, price } = body;
 
-    // Validação básica
     if (!name && !code && price === undefined) {
       return NextResponse.json(
         { error: "Forneça pelo menos um campo para atualizar (name, code ou price)" },
@@ -74,7 +70,6 @@ export async function PUT(
       );
     }
 
-    // Validação de preço se fornecido
     if (price !== undefined && (typeof price !== "number" || price < 0)) {
       return NextResponse.json(
         { error: "Preço deve ser um número positivo" },
@@ -82,7 +77,6 @@ export async function PUT(
       );
     }
 
-    // Verificar se o produto existe
     const [existingProduct] = await db
       .select()
       .from(products)
@@ -96,7 +90,6 @@ export async function PUT(
       );
     }
 
-    // Verificar se o novo código já existe em outro produto
     if (code && code !== existingProduct.code) {
       const [duplicateCode] = await db
         .select()
@@ -112,7 +105,6 @@ export async function PUT(
       }
     }
 
-    // Atualizar produto
     const [updatedProduct] = await db
       .update(products)
       .set({
@@ -124,7 +116,6 @@ export async function PUT(
       .where(eq(products.id, id))
       .returning();
 
-    // Registrar atualização no histórico
     await createAuditLog({
       userId: auth.user!.userId,
       action: "UPDATE",
@@ -157,7 +148,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verificar autenticação
+    // 1. Verificar autenticação
     const auth = requireAuth(request);
 
     if (!auth.success) {
@@ -169,13 +160,24 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se o produto existe
+    // 2. Verificar se o produto existe antes de deletar
     const [existingProduct] = await db
       .select()
       .from(products)
       .where(eq(products.id, id))
       .limit(1);
-// Registrar deleção no histórico
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: "Produto não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // 3. EXECUTAR A DELEÇÃO NO BANCO DE DADOS
+    await db.delete(products).where(eq(products.id, id));
+
+    // 4. Registrar deleção no histórico de auditoria
     await createAuditLog({
       userId: auth.user!.userId,
       action: "DELETE",
@@ -185,22 +187,8 @@ export async function DELETE(
       request,
     });
 
-    
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: "Produto não encontrado" },
-        { status: 404 }
-      );
-    }
-
-    // Deletar produto
-    await db.delete(products).where(eq(products.id, id));
-
     return NextResponse.json(
-      {
-        message: "Produto deletado com sucesso",
-        product: existingProduct,
-      },
+      { message: "Produto excluído com sucesso" },
       { status: 200 }
     );
   } catch (error) {
