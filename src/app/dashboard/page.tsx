@@ -5,15 +5,15 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Church,
-  Package,
-  Warehouse,
-  ShoppingCart,
-  TrendingUp,
-  TrendingDown,
+import { 
+  Church, 
+  Package, 
+  Warehouse, 
+  ShoppingCart, 
+  TrendingUp, 
+  TrendingDown, 
   AlertTriangle,
-  Trash2 // Adicionado para resolver o erro 'Cannot find name Trash2'
+  Trash2 
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -47,42 +47,20 @@ export default function DashboardPage() {
     if (user) loadStats();
   }, [user]);
 
-  // Função para excluir o item apenas da lista visual (State)
-  const handleExcluir = (indexParaRemover: number) => {
-    setStatsData(prev => ({
-      ...prev,
-      estoqueBaixo: prev.estoqueBaixo.filter((_, idx) => idx !== indexParaRemover)
-    }));
+  const handleExcluir = async (id: string) => {
+    if (confirm('Deseja remover este item do alerta?')) {
+      // Aqui virá sua lógica de delete
+      console.log("Excluindo item:", id);
+    }
   };
 
   if (isLoading) return <div className="flex items-center justify-center h-screen">Carregando...</div>;
   if (!user) return null;
 
   const stats = [
-    {
-      title: 'Total de Igrejas',
-      value: statsData.totalIgrejas.toString(),
-      icon: Church,
-      trend: 'up',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      title: 'Produtos Cadastrados',
-      value: statsData.totalProdutos.toString(),
-      icon: Package,
-      trend: 'up',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      title: 'Valor em Estoque',
-      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statsData.valorEstoque),
-      icon: Warehouse,
-      trend: 'up',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    }
+    { title: 'Total de Igrejas', value: statsData.totalIgrejas.toString(), icon: Church, color: 'text-blue-600', bgColor: 'bg-blue-50', trend: 'up' },
+    { title: 'Produtos Cadastrados', value: statsData.totalProdutos.toString(), icon: Package, color: 'text-green-600', bgColor: 'bg-green-50', trend: 'up' },
+    { title: 'Valor em Estoque', value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statsData.valorEstoque), icon: Warehouse, color: 'text-purple-600', bgColor: 'bg-purple-50', trend: 'up' },
   ];
 
   return (
@@ -152,7 +130,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {statsData.estoqueBaixo.length > 0 ? (
-                  statsData.estoqueBaixo.map((item: any, idx: number) => (
+                  statsData.estoqueBaixo.map((item: any, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{item.name}</p>
@@ -163,11 +141,9 @@ export default function DashboardPage() {
                           <p className="text-sm font-bold text-orange-700">{item.quantity}</p>
                           <p className="text-xs text-gray-500">unidades</p>
                         </div>
-                        {/* Botão de Excluir corrigido */}
                         <button 
-                          onClick={() => handleExcluir(idx)}
-                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                          title="Remover alerta"
+                          onClick={() => handleExcluir(item.id)} 
+                          className="text-gray-400 hover:text-red-600 transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>
