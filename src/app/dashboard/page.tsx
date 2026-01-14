@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,26 +5,27 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Church, 
-  Package, 
-  Warehouse, 
-  ShoppingCart, 
-  TrendingUp, 
+import {
+  Church,
+  Package,
+  Warehouse,
+  ShoppingCart,
+  TrendingUp,
   TrendingDown,
-  AlertTriangle 
+  AlertTriangle,
+  Trash2 // Adicionado para resolver o erro 'Cannot find name Trash2'
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  
-  const [statsData, setStatsData] = useState({ 
-    totalIgrejas: 0, 
-    totalProdutos: 0, 
+
+  const [statsData, setStatsData] = useState({
+    totalIgrejas: 0,
+    totalProdutos: 0,
     valorEstoque: 0,
-    atividades: [], // Pronto para receber do banco
-    estoqueBaixo: [] // Pronto para receber do banco
+    atividades: [],
+    estoqueBaixo: []
   });
 
   useEffect(() => {
@@ -46,6 +46,14 @@ export default function DashboardPage() {
     }
     if (user) loadStats();
   }, [user]);
+
+  // Função para excluir o item apenas da lista visual (State)
+  const handleExcluir = (indexParaRemover: number) => {
+    setStatsData(prev => ({
+      ...prev,
+      estoqueBaixo: prev.estoqueBaixo.filter((_, idx) => idx !== indexParaRemover)
+    }));
+  };
 
   if (isLoading) return <div className="flex items-center justify-center h-screen">Carregando...</div>;
   if (!user) return null;
@@ -110,7 +118,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Atividades Recentes - Limpo e pronto para dados reais */}
+          {/* Atividades Recentes */}
           <Card>
             <CardHeader>
               <CardTitle>Atividades Recentes</CardTitle>
@@ -135,7 +143,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Alerta de Estoque Baixo - Lógica de cores mantida */}
+          {/* Alerta de Estoque Baixo */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Atenção ao Estoque</CardTitle>
@@ -144,15 +152,25 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {statsData.estoqueBaixo.length > 0 ? (
-                  statsData.estoqueBaixo.map((item: any, idx) => (
+                  statsData.estoqueBaixo.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{item.name}</p>
                         <p className="text-xs text-orange-700">Reposição necessária</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-orange-700">{item.quantity}</p>
-                        <p className="text-xs text-gray-500">unidades</p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-orange-700">{item.quantity}</p>
+                          <p className="text-xs text-gray-500">unidades</p>
+                        </div>
+                        {/* Botão de Excluir corrigido */}
+                        <button 
+                          onClick={() => handleExcluir(idx)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Remover alerta"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   ))
