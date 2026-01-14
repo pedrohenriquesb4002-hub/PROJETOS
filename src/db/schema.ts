@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid,integer,varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, varchar, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -23,7 +23,7 @@ export const passwordResets = pgTable("password_resets", {
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 256 }).notNull(),
-  code : varchar("code", { length: 100 }).notNull().unique(),
+  code: varchar("code", { length: 100 }).notNull().unique(),
   price: integer("price").notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -33,19 +33,20 @@ export const igrejas = pgTable("igrejas", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 256 }).notNull(),
   cnpj: varchar("cnpj", { length: 18 }).notNull().unique(),
-    number: integer("number").notNull(),
-    street: varchar("street", { length: 256 }).notNull(),
-    city: varchar("city", { length: 256 }).notNull(),
-    state: varchar("state", { length: 256 }).notNull(),
-    zipCode: varchar("zip_code", { length: 20 }).notNull(),
-    neighborhood: varchar("neighborhood", { length: 256 }).notNull(),
+  number: integer("number").notNull(),
+  street: varchar("street", { length: 256 }).notNull(),
+  city: varchar("city", { length: 256 }).notNull(),
+  state: varchar("state", { length: 256 }).notNull(),
+  zipCode: varchar("zip_code", { length: 20 }).notNull(),
+  neighborhood: varchar("neighborhood", { length: 256 }).notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const stock = pgTable("stock", {
   id: uuid("id").primaryKey().defaultRandom(),
-  productId : uuid("product_id").notNull().references(() => products.id),
+  // ADICIONADO onDelete: "cascade" para permitir excluir o produto e limpar o estoque junto
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -53,9 +54,9 @@ export const stock = pgTable("stock", {
 
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  productId : uuid("product_id").notNull().references(() => products.id),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
-  igrejaId : uuid("igreja_id").notNull().references(() => igrejas.id),
+  igrejaId: uuid("igreja_id").notNull().references(() => igrejas.id, { onDelete: "cascade" }),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -63,13 +64,13 @@ export const orders = pgTable("orders", {
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  action: varchar("action", { length: 50 }).notNull(), // CREATE, UPDATE, DELETE, LOGIN, etc
-  entityType: varchar("entity_type", { length: 100 }).notNull(), // users, products, orders, etc
-  entityId: uuid("entity_id"), // ID do registro afetado (pode ser null para ações gerais)
-  oldData: text("old_data"), // JSON com dados anteriores (para UPDATE/DELETE)
-  newData: text("new_data"), // JSON com dados novos (para CREATE/UPDATE)
-  ipAddress: varchar("ip_address", { length: 45 }), // Endereço IP do usuário
-  userAgent: text("user_agent"), // User agent do navegador
+  action: varchar("action", { length: 50 }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(),
+  entityId: uuid("entity_id"),
+  // Alterado para jsonb para suportar os logs que sua API envia
+  oldData: jsonb("old_data"), 
+  newData: jsonb("new_data"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
-
