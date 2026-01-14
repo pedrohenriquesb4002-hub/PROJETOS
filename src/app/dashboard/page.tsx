@@ -1,6 +1,21 @@
+const [statsData, setStatsData] = useState({ totalIgrejas: 0, totalProdutos: 0, valorEstoque: 0 });
+useEffect(() => {
+  async function loadStats() {
+    try {
+      const response = await fetch('/api/stats');
+      const data = await response.json();
+      setStatsData(data);
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas:", error);
+    }
+  }
+  loadStats();
+}, []);
+
+
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -28,8 +43,8 @@ export default function DashboardPage() {
   const stats = [
     {
       title: 'Total de Igrejas',
-      value: '12',
-      change: '+1 mês anterior',
+     value: statsData.totalIgrejas.toString(), // Antes era '12'
+      change: '',
       icon: Church,
       trend: 'up',
       color: 'text-blue-600',
@@ -37,8 +52,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Produtos Cadastrados',
-      value: '145',
-      change: '+12 este mês',
+      value: statsData.totalProdutos.toString(), // Antes era '145'
+      change: '',
       icon: Package,
       trend: 'up',
       color: 'text-green-600',
@@ -46,8 +61,8 @@ export default function DashboardPage() {
     },
     {
       title: 'Valor em Estoque',
-      value: 'R$ 48.250,00',
-      change: '+3,5% vs. anterior',
+      value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(statsData.valorEstoque),
+      change: '',
       icon: Warehouse,
       trend: 'up',
       color: 'text-purple-600',
