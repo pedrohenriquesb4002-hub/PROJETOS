@@ -1,27 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db/drizzle"; // Verifique se o caminho está correto para sua estrutura
+import { users } from "@/db/schema";
 import bcrypt from "bcryptjs";
-import { db } from "../../../../db/drizzle"; 
-import { users } from "../../../../db/schema";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json();
+    const body = await request.json();
+    const { name, email, password } = body;
 
-    // Gera o hash compatível com o seu sistema de login
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: "Todos os campos são obrigatórios" },
+        { status: 400 }
+      );
+    }
+
+    // Gera o hash usando bcryptjs (o mesmo do login)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.insert(users).values({
-      id: crypto.randomUUID(),
+    const newUser = await db.insert(users).values({
       name,
       email,
       password: hashedPassword,
-    });
+    }).returning();
 
-    return NextResponse.json({ message: "Cadastrado com sucesso!" }, { status: 201 });
+    return NextResponse.json(
+      { message: "Usuário criado com sucesso", user: newUser[0] },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Erro no registro:", error);
-    return NextResponse.json({ error: "Erro ao cadastrar" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao criar usuário" },
+      { status: 500 }
+    );
   }
 }
-
-// atualização do banco de dados
