@@ -23,3 +23,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Erro ao cadastrar" }, { status: 500 });
   }
 }
+
+//atualização do banco de dados
