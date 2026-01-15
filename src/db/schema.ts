@@ -75,4 +75,4 @@ export const auditLog = pgTable("audit_log", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-//atualização do banco
+//atualização no banco de dados
