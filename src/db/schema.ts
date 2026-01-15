@@ -5,8 +5,8 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 256 }).notNull(),
   email: varchar("email", { length: 256 }).notNull().unique(),
   password: text("password").notNull(),
-  cpf: varchar("cpf", { length: 14 }).notNull().unique(),
-  phone: varchar("phone", { length: 25 }).notNull(),
+  cpf: varchar("cpf", { length: 14 }).unique(), // REMOVIDO .notNull()
+  phone: varchar("phone", { length: 25 }),      // REMOVIDO .notNull()
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
