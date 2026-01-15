@@ -24,4 +24,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-//atualização do banco de dados
+// atualização do banco de dados
