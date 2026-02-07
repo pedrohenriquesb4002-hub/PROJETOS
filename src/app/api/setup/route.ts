@@ -1,29 +1,29 @@
-import { NextResponse } from "next/server";
-import { db } from "@/db/drizzle"; 
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { db } from "@/db/drizzle";
+import { audit_log } from "@/db/schema";
 
-export async function GET() {
+interface AuditLogParams {
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  oldData?: any;
+  newData?: any;
+  request?: any; 
+}
+
+export async function createAuditLog({
+  userId, action, entityType, entityId, oldData, newData
+}: AuditLogParams) {
   try {
-    const email = "pedrohenriquesb4002@gmail.com";
-    const password = "40028922Pedro.";
-
-    // Deleta o registro antigo para limpar o erro
-    await db.delete(users).where(eq(users.email, email));
-
-    // Gera o hash usando o bcryptjs que você subiu
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insere o usuário oficial novamente
-    await db.insert(users).values({
-      name: "Pedro Henrique",
-      email: email,
-      password: hashedPassword,
+    await db.insert(audit_log).values({
+      userId,
+      action,
+      entityType,
+      entityId,
+      oldData,
+      newData,
     });
-
-    return NextResponse.json({ message: "Usuário criado com sucesso pelo sistema!" });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error("Erro no log de auditoria:", error);
   }
 }

@@ -1,38 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db/drizzle"; // Verifique se o caminho está correto para sua estrutura
+import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    // Capturando o ID da igreja do corpo da requisição
+    const { name, email, password, igrejaId } = body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !igrejaId) {
       return NextResponse.json(
-        { error: "Todos os campos são obrigatórios" },
+        { error: "Campos obrigatórios: name, email, password e igrejaId" }, 
         { status: 400 }
       );
     }
 
-    // Gera o hash usando bcryptjs (o mesmo do login)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await db.insert(users).values({
+    // Corrigido de 'igrejald' para 'igrejaId' conforme o erro
+    const [newUser] = await db.insert(users).values({
       name,
       email,
       password: hashedPassword,
+      igrejaId: igrejaId, 
     }).returning();
 
-    return NextResponse.json(
-      { message: "Usuário criado com sucesso", user: newUser[0] },
-      { status: 201 }
-    );
+    const { password: _, ...userWithoutPassword } = newUser;
+    
+    return NextResponse.json(userWithoutPassword, { status: 201 });
   } catch (error) {
     console.error("Erro no registro:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar usuário" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

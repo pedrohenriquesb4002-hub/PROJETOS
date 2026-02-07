@@ -57,26 +57,14 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 6. LOGS DE AUDITORIA (Corrigido com audit_log, ipAddress e userAgent)
+// 6. LOGS DE AUDITORIA (Sincronizado com as rotas)
 export const audit_log = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  userId: uuid("user_id").notNull(),
   action: varchar("action", { length: 50 }).notNull(),
   entityType: varchar("entity_type", { length: 50 }).notNull(),
-  entityId: uuid("entity_id"),
-  oldData: text("old_data"),
-  newData: text("new_data"),
-  ipAddress: varchar("ip_address", { length: 45 }), 
-  userAgent: text("user_agent"),                    
+  entityId: uuid("entity_id").notNull(),
+  oldData: jsonb("old_data"),
+  newData: jsonb("new_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
-
-// RELAÇÕES
-export const igrejaRelations = relations(igrejas, ({ many }) => ({
-  users: many(users),
-  products: many(products),
-}));
-
-export const userRelations = relations(users, ({ one }) => ({
-  igreja: one(igrejas, { fields: [users.igrejaId], references: [igrejas.id] }),
-}));
