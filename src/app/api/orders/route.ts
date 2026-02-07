@@ -1,63 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { orders, products, igrejas } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 
 /**
  * @swagger
  * /api/orders:
- *   post:
- *     summary: Criar novo pedido
- *     description: Cria um novo pedido no sistema (requer autenticação)
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - productId
- *               - quantity
- *               - igrejaId
- *             properties:
- *               productId:
- *                 type: string
- *                 format: uuid
- *                 description: ID do produto
- *               quantity:
- *                 type: integer
- *                 description: Quantidade do pedido
- *               igrejaId:
- *                 type: string
- *                 format: uuid
- *                 description: ID da igreja
- *     responses:
- *       201:
- *         description: Pedido criado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 order:
- *                   $ref: '#/components/schemas/Order'
- *       400:
- *         description: Dados inválidos
- *       401:
- *         description: Não autorizado
- *       404:
- *         description: Produto ou igreja não encontrados
+ * post:
+ * summary: Criar novo pedido
+ * tags: [Orders]
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticação
     const auth = requireAuth(request);
 
     if (!auth.success) {
@@ -68,35 +24,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productId, quantity, igrejaId } = body;
+    // Ajustado para os novos campos do schema
+    const { customerName, total, items, igrejaId } = body;
 
-    // Validação básica
-    if (!productId || !quantity || !igrejaId) {
+    // Validação básica atualizada
+    if (!customerName || !total || !items || !igrejaId) {
       return NextResponse.json(
-        { error: "productId, quantity e igrejaId são obrigatórios" },
+        { error: "customerName, total, items e igrejaId são obrigatórios" },
         { status: 400 }
-      );
-    }
-
-    // Validação de quantidade
-    if (typeof quantity !== "number" || quantity <= 0) {
-      return NextResponse.json(
-        { error: "Quantidade deve ser um número maior que zero" },
-        { status: 400 }
-      );
-    }
-
-    // Verificar se o produto existe
-    const [product] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId))
-      .limit(1);
-
-    if (!product) {
-      return NextResponse.json(
-        { error: "Produto não encontrado" },
-        { status: 404 }
       );
     }
 
@@ -114,12 +49,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Criar pedido
+    // Criar pedido no novo formato
     const [newOrder] = await db
       .insert(orders)
       .values({
-        productId,
-        quantity,
+        customerName,
+        total,
+        items, // O array de produtos/quantidades entra como JSON aqui
         igrejaId,
       })
       .returning();
@@ -132,8 +68,7 @@ export async function POST(request: NextRequest) {
       entityId: newOrder.id,
       newData: {
         ...newOrder,
-        productName: product.name,
-        igrejaName: igreja.name,
+        igrejaNome: igreja.nome,
       },
       request,
     });
@@ -141,11 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message: "Pedido criado com sucesso",
-        order: {
-          ...newOrder,
-          product,
-          igreja,
-        },
+        order: newOrder,
       },
       { status: 201 }
     );
@@ -161,32 +92,12 @@ export async function POST(request: NextRequest) {
 /**
  * @swagger
  * /api/orders:
- *   get:
- *     summary: Listar todos os pedidos
- *     description: Retorna lista de todos os pedidos com informações de produto e igreja (requer autenticação)
- *     tags: [Orders]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de pedidos
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 orders:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Order'
- *                 count:
- *                   type: integer
- *       401:
- *         description: Não autorizado
+ * get:
+ * summary: Listar todos os pedidos
+ * tags: [Orders]
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticação
     const auth = requireAuth(request);
 
     if (!auth.success) {
@@ -196,32 +107,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar todos os pedidos com informações do produto e igreja
+    // Buscar pedidos com join na igreja (Join no produto agora é feito via lógica de itens JSON)
     const allOrders = await db
       .select({
         id: orders.id,
-        productId: orders.productId,
-        quantity: orders.quantity,
+        customerName: orders.customerName,
+        total: orders.total,
+        items: orders.items,
         igrejaId: orders.igrejaId,
-        updatedAt: orders.updatedAt,
         createdAt: orders.createdAt,
-        product: {
-          id: products.id,
-          name: products.name,
-          code: products.code,
-          price: products.price,
-        },
         igreja: {
           id: igrejas.id,
-          name: igrejas.name,
+          nome: igrejas.nome,
           cnpj: igrejas.cnpj,
           city: igrejas.city,
           state: igrejas.state,
         },
       })
       .from(orders)
-      .leftJoin(products, eq(orders.productId, products.id))
-      .leftJoin(igrejas, eq(orders.igrejaId, igrejas.id));
+      .leftJoin(igrejas, eq(orders.igrejaId, igrejas.id))
+      .orderBy(desc(orders.createdAt));
 
     return NextResponse.json(
       {
@@ -238,4 +143,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-//force update orders api
