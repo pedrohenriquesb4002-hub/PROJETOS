@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/auth-context";
+import { AuthProvider } from "@/contexts/auth-context"; // Importação já estava correta
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,16 +18,11 @@ export const metadata: Metadata = {
   description: "Sistema de gestão para igrejas",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="pt-BR" suppressHydrationWarning> 
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* ADICIONE A LINHA ABAIXO PARA RESOLVER O ERRO */}
         <AuthProvider>
           {children}
         </AuthProvider>
