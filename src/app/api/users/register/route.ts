@@ -1,24 +1,28 @@
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
-import { hash } from "bcryptjs";
-import { NextResponse } from "next/server";
+import { hash } from "bcryptjs"; // Importado como 'hash'
+import { NextRequest, NextResponse } from "next/server"; // Importado NextRequest aqui
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, igrejaId, cpf, phone } = await req.json();
+    const body = await request.json();
+    const { name, email, password, igrejaId, cpf, phone } = body;
 
-    // Validação de campos obrigatórios
     if (!name || !email || !password || !igrejaId || !cpf || !phone) {
-      return NextResponse.json({ error: "Preencha todos os campos" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Todos os campos (incluindo CPF e Telefone) são obrigatórios" }, 
+        { status: 400 }
+      );
     }
 
+    // Usando a função 'hash' que foi importada corretamente
     const hashedPassword = await hash(password, 10);
 
     const [newUser] = await db.insert(users).values({
       name,
       email,
       password: hashedPassword,
-      igrejaId, // Certifique-se que o nome no schema.ts é igrejaId
+      igrejaId,
       cpf,
       phone,
       role: "admin",
