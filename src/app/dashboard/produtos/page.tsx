@@ -44,9 +44,8 @@ export default function ProdutosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Estados para Modais
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -91,11 +90,19 @@ export default function ProdutosPage() {
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `/api/products/${editingId}` : '/api/products';
 
+      // CORREÇÃO AQUI: Troca a vírgula por ponto antes de converter para número
+      const formattedPrice = parseFloat(formData.price.replace(',', '.'));
+
+      if (isNaN(formattedPrice)) {
+        alert('Por favor, insira um preço válido.');
+        return;
+      }
+
       await apiRequest(url, {
         method,
         body: JSON.stringify({
           ...formData,
-          price: parseFloat(formData.price),
+          price: formattedPrice,
         }),
       });
 
@@ -107,7 +114,6 @@ export default function ProdutosPage() {
     }
   };
 
-  // Abre o novo modal de confirmação
   const confirmDelete = (id: string) => {
     setProductToDelete(id);
     setIsDeleteConfirmOpen(true);
@@ -130,7 +136,7 @@ export default function ProdutosPage() {
     setFormData({
       name: product.name,
       code: product.code,
-      price: product.price.toString(),
+      price: product.price.toString().replace('.', ','), // Mostra com vírgula ao editar
     });
     setIsDialogOpen(true);
   };
@@ -158,7 +164,6 @@ export default function ProdutosPage() {
             <p className="text-gray-500 mt-1">Controle seu inventário de forma moderna</p>
           </div>
           
-          {/* Modal de Cadastro/Edição */}
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) resetForm();
@@ -184,7 +189,15 @@ export default function ProdutosPage() {
                 </div>
                 <div>
                   <Label htmlFor="price">Preço (R$)</Label>
-                  <Input id="price" type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} required />
+                  {/* Mudamos o type para text para aceitar a vírgula manualmente se necessário */}
+                  <Input 
+                    id="price" 
+                    type="text"
+                    placeholder="0,00"
+                    value={formData.price} 
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
@@ -195,9 +208,8 @@ export default function ProdutosPage() {
           </Dialog>
         </div>
 
-        {/* NOVO: Modal de Confirmação de Exclusão */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteConfirmOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DialogContent>
             <DialogHeader>
               <div className="flex items-center gap-2 text-red-600 mb-2">
                 <AlertTriangle className="w-5 h-5" />
@@ -207,16 +219,15 @@ export default function ProdutosPage() {
                 Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="flex gap-2 sm:justify-end mt-4">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancelar</Button>
               <Button variant="destructive" onClick={handleDelete}>Excluir Produto</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Resumo e Tabela permanecem similares para manter seu layout original */}
         <Card className="mb-6">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 text-center md:text-left">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><Package /></div>
               <div><p className="text-2xl font-bold">{products.length}</p><p className="text-sm text-gray-500">Total de Produtos</p></div>
