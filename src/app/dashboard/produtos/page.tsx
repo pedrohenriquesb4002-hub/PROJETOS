@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,7 @@ export default function ProdutosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -73,22 +74,51 @@ export default function ProdutosPage() {
     }
   };
 
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({ name: '', code: '', price: '' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiRequest('/api/products', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `/api/products/${editingId}` : '/api/products';
+
+      await apiRequest(url, {
+        method,
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
         }),
       });
+
       setIsDialogOpen(false);
-      setFormData({ name: '', code: '', price: '' });
+      resetForm();
       fetchProducts();
     } catch (error: any) {
-      alert(error.message || 'Erro ao criar produto');
+      alert(error.message || 'Erro ao salvar produto');
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+    try {
+      await apiRequest(`/api/products/${id}`, { method: 'DELETE' });
+      setProducts(products.filter((p) => p.id !== id));
+    } catch (error: any) {
+      alert(error.message || 'Erro ao excluir produto');
+    }
+  };
+
+  const handleEditClick = (product: Product) => {
+    setEditingId(product.id);
+    setFormData({
+      name: product.name,
+      code: product.code,
+      price: product.price.toString(),
+    });
+    setIsDialogOpen(true);
   };
 
   const formatPrice = (price: number) => {
@@ -103,9 +133,7 @@ export default function ProdutosPage() {
     product.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (authLoading || !user) {
-    return null;
-  }
+  if (authLoading || !user) return null;
 
   return (
     <DashboardLayout>
@@ -113,23 +141,21 @@ export default function ProdutosPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Gerenciar Produtos</h1>
-            <p className="text-gray-500 mt-1">
-              Cadastre e gerencie todos os produtos do seu inventário
-            </p>
+            <p className="text-gray-500 mt-1">Cadastre e gerencie todos os produtos</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Novo Produto
+              <Button className="gap-2" onClick={resetForm}>
+                <Plus className="w-4 h-4" /> Novo Produto
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Cadastrar Novo Produto</DialogTitle>
-                <DialogDescription>
-                  Preencha as informações do produto
-                </DialogDescription>
+                <DialogTitle>{editingId ? 'Editar Produto' : 'Cadastrar Novo Produto'}</DialogTitle>
+                <DialogDescription>Preencha as informações do produto abaixo.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -138,7 +164,6 @@ export default function ProdutosPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ex: Cadeiras Acolchoadas"
                     required
                   />
                 </div>
@@ -148,7 +173,6 @@ export default function ProdutosPage() {
                     id="code"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    placeholder="Ex: CAD-102"
                     required
                   />
                 </div>
@@ -160,19 +184,16 @@ export default function ProdutosPage() {
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="150.00"
                     required
                   />
                 </div>
                 <div className="flex gap-2 justify-end pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit">Salvar Produto</Button>
+                  <Button type="submit">
+                    {editingId ? 'Atualizar' : 'Salvar'} Produto
+                  </Button>
                 </div>
               </form>
             </DialogContent>
@@ -183,34 +204,12 @@ export default function ProdutosPage() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Package className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                  <Package />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                  <p className="text-2xl font-bold">{products.length}</p>
                   <p className="text-sm text-gray-600">Total de Produtos</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Badge className="bg-green-600">R$</Badge>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatPrice(products.reduce((sum, p) => sum + p.price, 0))}
-                  </p>
-                  <p className="text-sm text-gray-600">Valor Total Cadastrado</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Badge className="bg-purple-600">⭐</Badge>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {products.length > 0 ? formatPrice(products.reduce((sum, p) => sum + p.price, 0) / products.length) : 'R$ 0,00'}
-                  </p>
-                  <p className="text-sm text-gray-600">Preço Médio</p>
                 </div>
               </div>
             </div>
@@ -219,25 +218,19 @@ export default function ProdutosPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar por nome ou código..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar por nome ou código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <p className="text-center py-8 text-gray-500">Carregando...</p>
-            ) : filteredProducts.length === 0 ? (
-              <p className="text-center py-8 text-gray-500">
-                {searchTerm ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
-              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -251,23 +244,20 @@ export default function ProdutosPage() {
                 <TableBody>
                   {filteredProducts.map((product) => (
                     <TableRow key={product.id}>
-                      <TableCell>
-                        <Badge variant="outline">{product.code}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-semibold text-gray-900">
-                          {formatPrice(product.price)}
-                        </p>
-                      </TableCell>
+                      <TableCell><Badge variant="outline">{product.code}</Badge></TableCell>
+                      <TableCell className="font-medium text-gray-900">{product.name}</TableCell>
+                      <TableCell>{formatPrice(product.price)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(product)}>
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-600">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-600" 
+                            onClick={() => handleDelete(product.id)}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
