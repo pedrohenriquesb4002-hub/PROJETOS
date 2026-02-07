@@ -1,73 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
-import { auditLog, users } from "@/db/schema";
+import { audit_log, users } from "@/db/schema"; // Alterado de auditLog para audit_log
 import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth";
 
 /**
  * @swagger
  * /api/audit:
- *   get:
- *     summary: Consultar histórico de auditoria
- *     description: Retorna o histórico de auditoria do sistema com filtros opcionais (requer autenticação)
- *     tags: [Audit]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: userId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ID do usuário
- *       - in: query
- *         name: action
- *         schema:
- *           type: string
- *         description: Filtrar por ação (CREATE, UPDATE, DELETE, LOGIN)
- *       - in: query
- *         name: entityType
- *         schema:
- *           type: string
- *         description: Filtrar por tipo de entidade (users, products, orders, etc)
- *       - in: query
- *         name: entityId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filtrar por ID da entidade
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *         description: Número máximo de registros a retornar
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Número de registros a pular
- *     responses:
- *       200:
- *         description: Lista de logs de auditoria
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 logs:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/AuditLog'
- *                 count:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 offset:
- *                   type: integer
- *       401:
- *         description: Não autorizado
+ * get:
+ * summary: Consultar histórico de auditoria
+ * tags: [Audit]
  */
 export async function GET(request: NextRequest) {
   try {
@@ -90,48 +32,49 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Construir query
+    // Construir query usando audit_log
     let query = db
       .select({
-        id: auditLog.id,
-        userId: auditLog.userId,
+        id: audit_log.id,
+        userId: audit_log.userId,
         userName: users.name,
         userEmail: users.email,
-        action: auditLog.action,
-        entityType: auditLog.entityType,
-        entityId: auditLog.entityId,
-        oldData: auditLog.oldData,
-        newData: auditLog.newData,
-        ipAddress: auditLog.ipAddress,
-        userAgent: auditLog.userAgent,
-        createdAt: auditLog.createdAt,
+        action: audit_log.action,
+        entityType: audit_log.entityType,
+        entityId: audit_log.entityId,
+        oldData: audit_log.oldData,
+        newData: audit_log.newData,
+        ipAddress: audit_log.ipAddress,
+        userAgent: audit_log.userAgent,
+        createdAt: audit_log.createdAt,
       })
-      .from(auditLog)
-      .leftJoin(users, eq(auditLog.userId, users.id))
-      .orderBy(desc(auditLog.createdAt))
+      .from(audit_log) // Alterado para audit_log
+      .leftJoin(users, eq(audit_log.userId, users.id)) // Alterado para audit_log
+      .orderBy(desc(audit_log.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Aplicar filtros
+    // Aplicar filtros usando audit_log
     let logs: any[];
     
     if (userId) {
-      logs = await query.where(eq(auditLog.userId, userId));
+      logs = await query.where(eq(audit_log.userId, userId));
     } else if (action) {
-      logs = await query.where(eq(auditLog.action, action as any));
+      logs = await query.where(eq(audit_log.action, action as any));
     } else if (entityType) {
-      logs = await query.where(eq(auditLog.entityType, entityType as any));
+      logs = await query.where(eq(audit_log.entityType, entityType as any));
     } else if (entityId) {
-      logs = await query.where(eq(auditLog.entityId, entityId));
+      logs = await query.where(eq(audit_log.entityId, entityId));
     } else {
       logs = await query;
     }
 
-    // Parse JSON fields
+    // Parse JSON fields (Drizzle retorna como objeto se for jsonb, 
+    // mas mantemos o parse caso seu banco esteja como texto)
     const parsedLogs = logs.map(log => ({
       ...log,
-      oldData: log.oldData ? JSON.parse(log.oldData) : null,
-      newData: log.newData ? JSON.parse(log.newData) : null,
+      oldData: typeof log.oldData === 'string' ? JSON.parse(log.oldData) : log.oldData,
+      newData: typeof log.newData === 'string' ? JSON.parse(log.newData) : log.newData,
     }));
 
     return NextResponse.json(

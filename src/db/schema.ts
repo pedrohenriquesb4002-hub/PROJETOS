@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, uuid, integer, varchar, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// 1. IGREJAS
+// 1. TABELA DE IGREJAS
 export const igrejas = pgTable("igrejas", {
   id: uuid("id").primaryKey().defaultRandom(),
   nome: varchar("nome", { length: 256 }).notNull(),
@@ -17,7 +17,7 @@ export const igrejas = pgTable("igrejas", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 2. USUÁRIOS
+// 2. TABELA DE USUÁRIOS
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
@@ -28,7 +28,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 3. PRODUTOS
+// 3. TABELA DE PRODUTOS
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
   igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
@@ -38,7 +38,7 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 4. ESTOQUE (Resolvendo o erro "Export stock doesn't exist")
+// 4. TABELA DE ESTOQUE
 export const stock = pgTable("stock", {
   id: uuid("id").primaryKey().defaultRandom(),
   igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
@@ -47,7 +47,7 @@ export const stock = pgTable("stock", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 5. PEDIDOS (Resolvendo erros em api/orders)
+// 5. TABELA DE PEDIDOS
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
@@ -57,14 +57,26 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// 6. LOGS DE AUDITORIA (Resolvendo erros em api/audit)
+// 6. LOGS DE AUDITORIA (Corrigido com audit_log, ipAddress e userAgent)
 export const audit_log = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id"),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   action: varchar("action", { length: 50 }).notNull(),
   entityType: varchar("entity_type", { length: 50 }).notNull(),
   entityId: uuid("entity_id"),
-  oldData: jsonb("old_data"),
-  newData: jsonb("new_data"),
+  oldData: text("old_data"),
+  newData: text("new_data"),
+  ipAddress: varchar("ip_address", { length: 45 }), 
+  userAgent: text("user_agent"),                    
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// RELAÇÕES
+export const igrejaRelations = relations(igrejas, ({ many }) => ({
+  users: many(users),
+  products: many(products),
+}));
+
+export const userRelations = relations(users, ({ one }) => ({
+  igreja: one(igrejas, { fields: [users.igrejaId], references: [igrejas.id] }),
+}));
