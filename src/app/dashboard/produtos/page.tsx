@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -26,14 +26,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Package, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Package, Edit, Trash2, AlertTriangle, DollarSign, BarChart3 } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
 interface Product {
   id: string;
   name: string;
   code: string;
-  price: number; // Armazenado como centavos (inteiro) no banco
+  price: number;
   createdAt: string;
 }
 
@@ -44,7 +44,6 @@ export default function ProdutosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Estados para Controle dos Modais
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
@@ -90,13 +89,13 @@ export default function ProdutosPage() {
     try {
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `/api/products/${editingId}` : '/api/products';
-
-      // Tratamento de Centavos: Converte "54,33" -> 54.33 -> 5433 (inteiro)
+      
       const rawPrice = parseFloat(formData.price.replace(',', '.'));
       if (isNaN(rawPrice)) {
         alert('Por favor, insira um preço válido.');
         return;
       }
+      
       const priceInCents = Math.round(rawPrice * 100);
 
       await apiRequest(url, {
@@ -113,11 +112,6 @@ export default function ProdutosPage() {
     } catch (error: any) {
       alert(error.message || 'Erro ao salvar produto');
     }
-  };
-
-  const confirmDelete = (id: string) => {
-    setProductToDelete(id);
-    setIsDeleteConfirmOpen(true);
   };
 
   const handleDelete = async () => {
@@ -137,7 +131,6 @@ export default function ProdutosPage() {
     setFormData({
       name: product.name,
       code: product.code,
-      // Converte centavos do banco para exibição com vírgula
       price: (product.price / 100).toString().replace('.', ','),
     });
     setIsDialogOpen(true);
@@ -150,10 +143,15 @@ export default function ProdutosPage() {
     }).format(priceInCents / 100);
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase())
+  // Cálculos para os Cards de Resumo
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalItems = products.length;
+  const totalValueCents = products.reduce((acc, p) => acc + (p.price || 0), 0);
+  const averageValueCents = totalItems > 0 ? totalValueCents / totalItems : 0;
 
   if (authLoading || !user) return null;
 
@@ -162,8 +160,8 @@ export default function ProdutosPage() {
       <div className="p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gerenciar Produtos</h1>
-            <p className="text-gray-500 mt-1">Organize seu catálogo de forma eficiente</p>
+            <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
+            <p className="text-gray-500 mt-1">Gerencie seu inventário e preços</p>
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -177,56 +175,64 @@ export default function ProdutosPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingId ? 'Editar Produto' : 'Cadastrar Produto'}</DialogTitle>
-                <DialogDescription>Preencha os dados (ex de preço: 45,90).</DialogDescription>
+                <DialogTitle>{editingId ? 'Editar Produto' : 'Cadastrar Novo Produto'}</DialogTitle>
+                <DialogDescription>Preencha os dados abaixo.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="name">Nome</Label>
                   <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="code">Código</Label>
                   <Input id="code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} required />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="price">Preço (R$)</Label>
-                  <Input 
-                    id="price" 
-                    type="text" 
-                    placeholder="0,00"
-                    value={formData.price} 
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
-                    required 
-                  />
+                  <Input id="price" placeholder="0,00" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} required />
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                  <Button type="submit">{editingId ? 'Atualizar' : 'Salvar'}</Button>
+                  <Button type="submit">Salvar</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (DENTRO DO SITE) */}
-        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <div className="flex items-center gap-2 text-red-600 mb-2">
-                <AlertTriangle className="w-5 h-5" />
-                <DialogTitle>Confirmar Exclusão</DialogTitle>
-              </div>
-              <DialogDescription>
-                Tem certeza que deseja remover este produto? Esta ação é permanente.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Voltar</Button>
-              <Button variant="destructive" onClick={handleDelete}>Sim, Excluir</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Cards de Resumo */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
+              <Package className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalItems}</div>
+              <p className="text-xs text-muted-foreground">unidades cadastradas</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{formatPrice(totalValueCents)}</div>
+              <p className="text-xs text-muted-foreground">soma de todos os produtos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Valor Médio</CardTitle>
+              <BarChart3 className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(averageValueCents)}</div>
+              <p className="text-xs text-muted-foreground">média por item</p>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
@@ -236,7 +242,7 @@ export default function ProdutosPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? <p className="text-center py-4">Carregando...</p> : (
+            {isLoading ? <p className="text-center py-4 text-gray-500">Carregando...</p> : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -255,7 +261,7 @@ export default function ProdutosPage() {
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(p)}><Edit className="w-4 h-4" /></Button>
-                          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => confirmDelete(p.id)}><Trash2 className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="sm" className="text-red-600" onClick={() => { setProductToDelete(p.id); setIsDeleteConfirmOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -265,6 +271,19 @@ export default function ProdutosPage() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600"><AlertTriangle /> Confirmar Exclusão</DialogTitle>
+              <DialogDescription>Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancelar</Button>
+              <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
