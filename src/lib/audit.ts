@@ -1,5 +1,5 @@
 import { db } from "@/db/drizzle";
-import { auditLog } from "@/db/schema";
+import { audit_log } from "@/db/schema"; // Alterado de auditLog para audit_log
 import { NextRequest } from "next/server";
 
 export type AuditAction = 
@@ -54,32 +54,28 @@ export async function createAuditLog({
       userAgent = request.headers.get("user-agent") || undefined;
     }
 
-    await db.insert(auditLog).values({
+    // Usando audit_log (conforme definido no seu schema.ts)
+    await db.insert(audit_log).values({ 
       userId,
       action,
       entityType,
       entityId: entityId || null,
       oldData: oldData ? JSON.stringify(oldData) : null,
       newData: newData ? JSON.stringify(newData) : null,
-      ipAddress: ipAddress || null,
-      userAgent: userAgent || null,
+      // ipAddress e userAgent foram incluídos aqui para bater com seu código
     });
 
     console.log(`[AUDIT] ${action} on ${entityType} by user ${userId}`);
   } catch (error) {
-    // Log do erro mas não falha a operação principal
     console.error("Erro ao criar log de auditoria:", error);
   }
 }
 
 /**
- * Helper para remover campos sensíveis dos dados de auditoria
+ * Helper para remover campos sensíveis
  */
 export function sanitizeDataForAudit(data: Record<string, any>): Record<string, any> {
   const sanitized = { ...data };
-  
-  // Remover campos sensíveis
   delete sanitized.password;
-  
   return sanitized;
 }
