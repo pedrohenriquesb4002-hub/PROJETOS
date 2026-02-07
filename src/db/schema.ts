@@ -68,4 +68,4 @@ export const audit_log = pgTable("audit_log", {
   oldData: jsonb("old_data"),
   newData: jsonb("new_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}); // Verifique se esta chave e parênteses estão aqui!

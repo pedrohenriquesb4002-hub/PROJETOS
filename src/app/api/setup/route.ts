@@ -1,29 +1,13 @@
+import { NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
-import { audit_log } from "@/db/schema";
+// Adicione aqui os imports necessários do seu schema
 
-interface AuditLogParams {
-  userId: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  oldData?: any;
-  newData?: any;
-  request?: any; 
-}
-
-export async function createAuditLog({
-  userId, action, entityType, entityId, oldData, newData
-}: AuditLogParams) {
+export async function POST(request: Request) {
   try {
-    await db.insert(audit_log).values({
-      userId,
-      action,
-      entityType,
-      entityId,
-      oldData,
-      newData,
-    });
+    // Sua lógica de setup para criar a primeira igreja/usuário
+    return NextResponse.json({ message: "Setup verificado" }, { status: 200 });
   } catch (error) {
-    console.error("Erro no log de auditoria:", error);
+    console.error("Erro no setup:", error);
+    return NextResponse.json({ error: "Falha no setup" }, { status: 500 });
   }
 }
