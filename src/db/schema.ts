@@ -59,6 +59,9 @@ export const orders = pgTable("orders", {
 });
 
 // 6. LOGS DE AUDITORIA - CORRIGIDO (fechando chaves corretamente)
+// ... (mantenha o que já tem acima até a tabela orders)
+
+// 6. LOGS DE AUDITORIA - CORRIGIDO
 export const audit_log = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
@@ -68,4 +71,4 @@ export const audit_log = pgTable("audit_log", {
   oldData: jsonb("old_data"),
   newData: jsonb("new_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-}); // Verifique se esta chave e parênteses estão aqui!
+}); // Esta chave '}' é o que faltava na sua imagem

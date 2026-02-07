@@ -1,36 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
-import bcrypt from "bcrypt";
+import { hash } from "bcryptjs";
+import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    // Capturando o ID da igreja do corpo da requisição
-    const { name, email, password, igrejaId } = body;
+    const { name, email, password, igrejaId, cpf, phone } = await req.json();
 
-    if (!name || !email || !password || !igrejaId) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios: name, email, password e igrejaId" }, 
-        { status: 400 }
-      );
+    // Validação de campos obrigatórios
+    if (!name || !email || !password || !igrejaId || !cpf || !phone) {
+      return NextResponse.json({ error: "Preencha todos os campos" }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hash(password, 10);
 
-    // Corrigido de 'igrejald' para 'igrejaId' conforme o erro
     const [newUser] = await db.insert(users).values({
       name,
       email,
       password: hashedPassword,
-      igrejaId: igrejaId, 
+      igrejaId, // Certifique-se que o nome no schema.ts é igrejaId
+      cpf,
+      phone,
+      role: "admin",
     }).returning();
 
-    const { password: _, ...userWithoutPassword } = newUser;
-    
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    return NextResponse.json(newUser, { status: 201 });
   } catch (error) {
-    console.error("Erro no registro:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ error: "Erro ao registrar usuário" }, { status: 500 });
   }
 }
