@@ -8,7 +8,7 @@ import { createAuditLog } from "@/lib/audit";
 // GET /api/igrejas/[id] - Obter igreja específica (PROTEGIDA)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -21,7 +21,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Buscar igreja
     const [igreja] = await db
@@ -59,7 +59,7 @@ export async function GET(
 // PUT /api/igrejas/[id] - Atualizar igreja (PROTEGIDA)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+ { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -72,7 +72,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { name, cnpj, number, street, city, state, zipCode, neighborhood } = body;
 
@@ -176,7 +176,7 @@ export async function PUT(
 // DELETE /api/igrejas/[id] - Deletar igreja (PROTEGIDA)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticação
@@ -189,7 +189,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Verificar se a igreja existe
     const [existingIgreja] = await db

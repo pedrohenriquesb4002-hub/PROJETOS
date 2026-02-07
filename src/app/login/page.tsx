@@ -39,7 +39,7 @@ export default function LoginPage() {
               <span className="text-white text-2xl font-bold">GE</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Gestão Eclesiástica</CardTitle>
+          <CardTitle className="text-2xl font-bold">Congregação Cristã No Brasil</CardTitle>
           <CardDescription>
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
