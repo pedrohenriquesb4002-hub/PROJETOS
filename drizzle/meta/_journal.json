@@ -29,6 +29,13 @@
       "when": 1770487788511,
       "tag": "0003_fat_roxanne_simpson",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770489125505,
+      "tag": "0004_nifty_jack_power",
+      "breakpoints": true
     }
   ]
 }
