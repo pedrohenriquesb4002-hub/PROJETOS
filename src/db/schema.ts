@@ -1,13 +1,22 @@
 import { pgTable, text, timestamp, uuid, integer, varchar, jsonb } from "drizzle-orm/pg-core";
 
+// 1. TABELA DE IGREJAS
 export const igrejas = pgTable("igrejas", {
   id: uuid("id").primaryKey().defaultRandom(),
   nome: varchar("nome", { length: 256 }).notNull(),
   slug: varchar("slug", { length: 100 }).unique().notNull(),
+  cnpj: varchar("cnpj", { length: 20 }), // Adicionado para resolver erro em igrejas/[id]
+  street: text("street"),
+  number: varchar("number", { length: 20 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  zipCode: varchar("zip_code", { length: 20 }),
+  neighborhood: varchar("neighborhood", { length: 100 }),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// 2. TABELA DE USUÁRIOS
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
@@ -15,10 +24,48 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 256 }).notNull().unique(),
   password: text("password").notNull(),
   role: varchar("role", { length: 50 }).default("admin"),
-  // CAMPOS ADICIONADOS PARA CORRIGIR OS ERROS
   cpf: varchar("cpf", { length: 14 }).unique().notNull(),
   phone: varchar("phone", { length: 20 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// ... (mantenha o restante das tabelas products, stock, orders e audit_log como estão)
+// 3. TABELA DE PRODUTOS
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
+  name: varchar("name", { length: 256 }).notNull(),
+  code: varchar("code", { length: 100 }).notNull(),
+  price: integer("price").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// 4. TABELA DE ESTOQUE
+export const stock = pgTable("stock", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  quantity: integer("quantity").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// 5. TABELA DE PEDIDOS
+export const orders = pgTable("orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  igrejaId: uuid("igreja_id").references(() => igrejas.id, { onDelete: "cascade" }).notNull(),
+  customerName: varchar("customer_name", { length: 256 }).notNull(),
+  total: integer("total").notNull(),
+  items: jsonb("items").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// 6. LOGS DE AUDITORIA - CORRIGIDO (fechando chaves corretamente)
+export const audit_log = pgTable("audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  entityId: uuid("entity_id").notNull(),
+  oldData: jsonb("old_data"),
+  newData: jsonb("new_data"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
