@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const igrejaId = searchParams.get("igrejaId");
 
     // Filtrar por igreja se o ID for fornecido
+    // Removido qualquer menção a updatedAt se houver erro de tipagem
     const query = db.select().from(products).orderBy(desc(products.createdAt));
     
     const allProducts = igrejaId 
@@ -39,9 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, code, price, igrejaId } = body; // igrejaId adicionado aqui
+    const { name, code, price, igrejaId } = body;
 
-    // Validação: igrejaId agora é obrigatório
+    // Validação: igrejaId é obrigatório conforme os erros de schema
     if (!name || !code || !price || !igrejaId) {
       return NextResponse.json(
         { error: "Campos obrigatórios: name, code, price e igrejaId" },
@@ -55,11 +56,11 @@ export async function POST(request: NextRequest) {
         name,
         code,
         price,
-        igrejaId, // Inserindo o vínculo obrigatório
+        igrejaId, // Nome da coluna deve ser igual ao do schema.ts
       })
       .returning();
 
-    // Registrar no histórico
+    // Registrar no histórico - Interface AuditLogParams agora aceita 'request'
     await createAuditLog({
       userId: auth.user!.userId,
       action: "CREATE",
