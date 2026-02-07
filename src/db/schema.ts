@@ -5,8 +5,8 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 256 }).notNull(),
   email: varchar("email", { length: 256 }).notNull().unique(),
   password: text("password").notNull(),
-  cpf: varchar("cpf", { length: 14 }).unique(), // REMOVIDO .notNull()
-  phone: varchar("phone", { length: 25 }),      // REMOVIDO .notNull()
+  cpf: varchar("cpf", { length: 14 }).unique(),
+  phone: varchar("phone", { length: 25 }),
   updatedAt: timestamp("updated_at").defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -45,7 +45,6 @@ export const igrejas = pgTable("igrejas", {
 
 export const stock = pgTable("stock", {
   id: uuid("id").primaryKey().defaultRandom(),
-  // ADICIONADO onDelete: "cascade" para permitir excluir o produto e limpar o estoque junto
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -67,12 +66,9 @@ export const auditLog = pgTable("audit_log", {
   action: varchar("action", { length: 50 }).notNull(),
   entityType: varchar("entity_type", { length: 100 }).notNull(),
   entityId: uuid("entity_id"),
-  // Alterado para jsonb para suportar os logs que sua API envia
   oldData: jsonb("old_data"), 
   newData: jsonb("new_data"),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
-
-//atualização no banco de dados

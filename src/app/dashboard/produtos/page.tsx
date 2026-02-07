@@ -33,7 +33,7 @@ interface Product {
   id: string;
   name: string;
   code: string;
-  price: number;
+  price: number; // Armazenado como centavos (inteiro) no banco
   createdAt: string;
 }
 
@@ -44,6 +44,7 @@ export default function ProdutosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Estados para Controle dos Modais
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
@@ -90,19 +91,19 @@ export default function ProdutosPage() {
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `/api/products/${editingId}` : '/api/products';
 
-      // CORREÇÃO AQUI: Troca a vírgula por ponto antes de converter para número
-      const formattedPrice = parseFloat(formData.price.replace(',', '.'));
-
-      if (isNaN(formattedPrice)) {
+      // Tratamento de Centavos: Converte "54,33" -> 54.33 -> 5433 (inteiro)
+      const rawPrice = parseFloat(formData.price.replace(',', '.'));
+      if (isNaN(rawPrice)) {
         alert('Por favor, insira um preço válido.');
         return;
       }
+      const priceInCents = Math.round(rawPrice * 100);
 
       await apiRequest(url, {
         method,
         body: JSON.stringify({
           ...formData,
-          price: formattedPrice,
+          price: priceInCents,
         }),
       });
 
@@ -136,16 +137,17 @@ export default function ProdutosPage() {
     setFormData({
       name: product.name,
       code: product.code,
-      price: product.price.toString().replace('.', ','), // Mostra com vírgula ao editar
+      // Converte centavos do banco para exibição com vírgula
+      price: (product.price / 100).toString().replace('.', ','),
     });
     setIsDialogOpen(true);
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (priceInCents: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(price);
+    }).format(priceInCents / 100);
   };
 
   const filteredProducts = products.filter((product) =>
@@ -161,7 +163,7 @@ export default function ProdutosPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Gerenciar Produtos</h1>
-            <p className="text-gray-500 mt-1">Controle seu inventário de forma moderna</p>
+            <p className="text-gray-500 mt-1">Organize seu catálogo de forma eficiente</p>
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -175,8 +177,8 @@ export default function ProdutosPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingId ? 'Editar Produto' : 'Cadastrar Novo Produto'}</DialogTitle>
-                <DialogDescription>Preencha os dados abaixo.</DialogDescription>
+                <DialogTitle>{editingId ? 'Editar Produto' : 'Cadastrar Produto'}</DialogTitle>
+                <DialogDescription>Preencha os dados (ex de preço: 45,90).</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -189,10 +191,9 @@ export default function ProdutosPage() {
                 </div>
                 <div>
                   <Label htmlFor="price">Preço (R$)</Label>
-                  {/* Mudamos o type para text para aceitar a vírgula manualmente se necessário */}
                   <Input 
                     id="price" 
-                    type="text"
+                    type="text" 
                     placeholder="0,00"
                     value={formData.price} 
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
@@ -208,6 +209,7 @@ export default function ProdutosPage() {
           </Dialog>
         </div>
 
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (DENTRO DO SITE) */}
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent>
             <DialogHeader>
@@ -216,30 +218,21 @@ export default function ProdutosPage() {
                 <DialogTitle>Confirmar Exclusão</DialogTitle>
               </div>
               <DialogDescription>
-                Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.
+                Tem certeza que deseja remover este produto? Esta ação é permanente.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancelar</Button>
-              <Button variant="destructive" onClick={handleDelete}>Excluir Produto</Button>
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Voltar</Button>
+              <Button variant="destructive" onClick={handleDelete}>Sim, Excluir</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        <Card className="mb-6">
-          <CardContent className="pt-6 text-center md:text-left">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><Package /></div>
-              <div><p className="text-2xl font-bold">{products.length}</p><p className="text-sm text-gray-500">Total de Produtos</p></div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="Buscar por nome ou código..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
           </CardHeader>
           <CardContent>
